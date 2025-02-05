@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Hacked!</title>
+    <style>
+        body {
+            background-color: black;
+            color: red;
+            text-align: center;
+            font-family: Arial, sans-serif;
+        }
+        .warning {
+            font-size: 2em;
+            margin-top: 20%;
+            animation: blink 0.8s infinite alternate;
+        }
+        @keyframes blink {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+        .message {
+            font-size: 1.2em;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1 class="warning">!! ACCOUNT HAS BEEN HACK BY AKI !!</h1>
+    <p class="message">Your data has been stolen. Changing password won’t help.</p>
+    <p class="message">Sending all information to the server...</p>
+    <script>
+        setTimeout(function() {
+            document.body.innerHTML = '<h1 style="color: green;">PRANK! Your account is safe 😆</h1>';
+        }, 5000);
+    </script>
+</body>
+</html>
