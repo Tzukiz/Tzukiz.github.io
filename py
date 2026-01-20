@@ -3,70 +3,68 @@ import cv2
 from gpiozero import LED
 
 # --- SETUP ---
-# LED di Pin GPIO 17
-led = LED(17)
+led = LED(17) # Pastikan cucuk di Pin Fizikal 11
 
-# Load model YOLO
-print("Tunggu sekejap, sedang load model...")
+print("Loading model... (Ini mungkin ambil masa sikit)")
 model = YOLO("yolov8n.pt")
 
-# SETUP KAMERA (PENTING!)
-# Kita tambah cv2.CAP_V4L2 untuk paksa driver kamera Linux
-# Kalau error, tukar nombor 0 jadi 1 atau -1
+# SETUP KAMERA
+# Kita set resolution rendah sikit (320x240) supaya laju
 cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
+cap.set(3, 320)  # Lebar
+cap.set(4, 240)  # Tinggi
 
-# Set saiz gambar
-cap.set(3, 640)
-cap.set(4, 480)
+print("Sistem Laju Sedia! Tekan 'q' untuk keluar.")
 
-print("Sistem BERJAYA! Tekan 'q' untuk keluar.")
+# Variable untuk teknik 'Frame Skipping'
+frame_count = 0
+skip_rate = 3  # Scan AI setiap 3 frame (Lagi tinggi nombor, lagi smooth video)
+mouse_dikesan = False # Simpan status terakhir
 
 while True:
-    # 1. Baca gambar
     ret, frame = cap.read()
-    
-    # Kalau tak dapat gambar, skip pusingan ini
     if not ret:
-        print("Gagal baca kamera... mencuba lagi")
         continue
 
-    # 2. YOLO Scan
-    results = model(frame, stream=True, verbose=False)
+    frame_count += 1
     
-    mouse_dikesan = False
-
-    # 3. Proses setiap kotak
-    # Perhatikan semua baris di bawah ini 'masuk ke dalam'
-    for result in results:
-        frame_kotak = result.plot()
+    # --- TEKNIK LAJUKAN VIDEO ---
+    # Kita cuma run AI bila frame_count boleh bahagi dengan skip_rate
+    if frame_count % skip_rate == 0:
         
-        for box in result.boxes:
-            class_id = int(box.cls[0])
-            nama_barang = model.names[class_id]
+        # Run YOLO (stream=True lajukan proses)
+        results = model(frame, stream=True, verbose=False)
+        
+        # Reset balik status sebelum check baru
+        mouse_dikesan = False 
+        
+        for result in results:
+            # Kita tak lukis kotak setiap masa sebab berat
+            # Kita cuma nak logic LED je
             
-            if nama_barang == "mouse":
-                mouse_dikesan = True
-
-    # 4. Logic LED
+            for box in result.boxes:
+                class_id = int(box.cls[0])
+                nama = model.names[class_id]
+                
+                if nama == "mouse":
+                    mouse_dikesan = True
+    
+    # --- OUTPUT ---
+    # Logic LED (Guna status detection terakhir)
     if mouse_dikesan:
         led.on()
-        print("JUMPA MOUSE!")
+        # Lukis tulisan MOUSE ringkas di skrin (lagi ringan dari lukis kotak)
+        cv2.putText(frame, "MOUSE DIKESAN!", (20, 50), 
+                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
     else:
         led.off()
 
-    # 5. Tunjuk video
-    try:
-        cv2.imshow("Kamera AI", frame_kotak)
-    except:
-        cv2.imshow("Kamera AI", frame)
+    # Tunjuk video 'mentah'. Ini buat video nampak smooth sebab tak payah render kotak AI yg berat
+    cv2.imshow("Kamera Laju", frame)
 
-    # 6. Keluar bila tekan 'q'
-    # Baris ini WAJIB ada jarak (indent) supaya duduk dalam while
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
-# Cleanup
 cap.release()
 cv2.destroyAllWindows()
 led.off()
-print("Sistem tamat.")
